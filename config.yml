@@ -1,0 +1,11 @@
+data_path:
+  common_words_path: "common_words.txt"
+  model_path: "name_matching_100_scale.pth"
+
+ff_model:
+  input_size: 9
+  number_labels: 2
+  num_character: 2
+  num_character_position: 5
+  num_words: 1
+  num_word_position: 2
