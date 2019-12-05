@@ -84,4 +84,7 @@ def train(training_generator, test_generator, model, device='cpu', max_epochs=2)
 if __name__ == "__main__":
     training_generator, test_generator, model = main()
     # input_ids, labels_1, labels_2 = next(iter(training_generator))
-    train(training_generator=training_generator, model=model, device=device, max_epochs=10)
+    train(training_generator=training_generator,
+            test_generator=test_generator,
+            model=model, device=device,
+            max_epochs=10)
