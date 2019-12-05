@@ -4,7 +4,7 @@ from dataloader import TitleDataset
 from torch.utils import data
 import torch.optim as optim
 import torch
-
+from tqdm import tqdm
 
 params = {
     'batch_size': 8,
@@ -51,8 +51,13 @@ def train(training_generator, test_generator, model, device='cpu', max_epochs=2)
     optimizer = optim.Adam(model.parameters(), **opim_params)
     for epoch in range(max_epochs):
         running_loss = 0.0
+        test_loss = 0.0
         model.zero_grad()
-        for i, (input_ids, label) in enumerate(training_generator, 0):
+        t = tqdm(enumerate(training_generator, 0), total=len(training_generator))
+        t.set_description("Epoch: {}, train_loss: {:.4f}, test_loss: {:.4f}".format(epoch+1, running_loss / 10, test_loss / len(test_generator)))
+        # t.set_description("Loss: {:.4f}".format(running_loss / 10))
+        for i, (input_ids, label) in t:
+
             input_ids, label = input_ids.to(device), label.to(device)
             # print(input_ids.size())
             # print(label.size())
@@ -66,25 +71,32 @@ def train(training_generator, test_generator, model, device='cpu', max_epochs=2)
             if (i+1) % accumulation_steps == 0:
                 optimizer.step()
                 model.zero_grad()
-
             running_loss += loss.item()
+
+            if (i + 1) % 1000 == 0:     # Do validation
+                with torch.set_grad_enabled(False):
+                    for input_ids, label in test_generator:
+                        input_ids, label = input_ids.to(device), label.to(device)
+                        outputs = model(input_ids, labels=label)
+
+                        loss = outputs[0].squeeze()
+                        test_loss += loss.item()
+                t.set_description("Epoch: {}, train_loss: {:.4f}, test_loss: {:.4f}".format(epoch+1, running_loss / 10, test_loss / len(test_generator)))
+                test_loss == 0.0
+
             if (i + 1) % 100 == 0:    # print every 10 mini-batches
-                print('Epoch: {}, step: {}, loss: {}'.format(epoch + 1, i + 1, running_loss / 100))
+                # print('Epoch: {}, step: {}, loss: {}'.format(epoch + 1, i + 1, running_loss / 100))
+                t.set_description("Epoch: {}, train_loss: {:.4f}, test_loss: {:.4f}".format(epoch+1, running_loss / 10, test_loss / len(test_generator)))
                 running_loss = 0.0
 
-    running_loss = 0.0
-    with torch.set_grad_enabled(False):
-        for input_ids, label in test_generator:
-            outputs = model(input_ids, labels=label)
 
-            loss = outputs[0].squeeze()
-            running_loss += loss.item()
-    print("Validation loss: {}".format(running_loss))
+    print("Done training")
 
 if __name__ == "__main__":
     training_generator, test_generator, model = main()
     # input_ids, labels_1, labels_2 = next(iter(training_generator))
     train(training_generator=training_generator,
             test_generator=test_generator,
-            model=model, device=device,
+            model=model,
+            device=device,
             max_epochs=10)
