@@ -10,7 +10,7 @@ from sklearn.metrics import accuracy_score
 params = {
     'batch_size': 8,
     'shuffle': True,
-    'num_workers': 8,
+    'num_workers': 4,
     'drop_last': True
 }
 
@@ -57,7 +57,7 @@ def train(training_generator, test_generator, model, device='cpu', max_epochs=2)
         t = tqdm(enumerate(training_generator, 0), total=len(training_generator))
         t.set_description("Epoch: {}, train_loss: {:.4f}, test_loss: {:.4f}".format(epoch+1, running_loss / 10, test_loss / len(test_generator)))
         # t.set_description("Loss: {:.4f}".format(running_loss / 10))
-        for i, (input_ids, label) in t:
+        for i, (input_ids, label, _) in t:
 
             input_ids, label = input_ids.to(device), label.to(device)
             # print(input_ids.size())
@@ -78,14 +78,16 @@ def train(training_generator, test_generator, model, device='cpu', max_epochs=2)
                 with torch.set_grad_enabled(False):
                     all_pred_labels = []
                     all_labels = []
-                    for input_ids, label in test_generator:
+                    print("test")
+                    for input_ids, label, raw_label in tqdm(test_generator):
                         input_ids, label = input_ids.to(device), label.to(device)
                         outputs = model(input_ids, labels=label)
-                        pred_labels = torch.max(outputs[1][0], 1)[1]
+#                         print(outputs[1])
+                        pred_labels = torch.max(outputs[1], 1)[1]        
 
-                        all_pred_labels += pred_labels
-                        all_labels += label.cpu().numpy().tolist()
-
+                        all_pred_labels += pred_labels.cpu().numpy().tolist()
+                        all_labels += raw_label.cpu().numpy().tolist()
+                    
                         loss = outputs[0].squeeze()
                         test_loss += loss.item()
                 t.set_description("Epoch: {}, train_loss: {:.4f}, test_loss: {:.4f}".format(epoch+1, running_loss / 10, test_loss / len(test_generator)))
