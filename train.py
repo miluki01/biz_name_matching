@@ -5,6 +5,7 @@ from torch.utils import data
 import torch.optim as optim
 import torch
 from tqdm import tqdm
+from sklearn.metrics import accuracy_score
 
 params = {
     'batch_size': 8,
@@ -75,14 +76,22 @@ def train(training_generator, test_generator, model, device='cpu', max_epochs=2)
 
             if (i + 1) % 1000 == 0:     # Do validation
                 with torch.set_grad_enabled(False):
+                    all_pred_labels = []
+                    all_labels = []
                     for input_ids, label in test_generator:
                         input_ids, label = input_ids.to(device), label.to(device)
                         outputs = model(input_ids, labels=label)
+                        pred_labels = torch.max(outputs[1][0], 1)[1]
+
+                        all_pred_labels += pred_labels
+                        all_labels += label.cpu().numpy().tolist()
 
                         loss = outputs[0].squeeze()
                         test_loss += loss.item()
                 t.set_description("Epoch: {}, train_loss: {:.4f}, test_loss: {:.4f}".format(epoch+1, running_loss / 10, test_loss / len(test_generator)))
                 test_loss == 0.0
+                acc = accuracy_score(all_labels, all_pred_labels)
+                print("Acc: {}".format(acc))
 
             if (i + 1) % 100 == 0:    # print every 10 mini-batches
                 # print('Epoch: {}, step: {}, loss: {}'.format(epoch + 1, i + 1, running_loss / 100))
